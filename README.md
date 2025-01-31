@@ -175,13 +175,13 @@ def scroll_container(driver,date):
             count_repeat_break = 0
         if count_repeat_break == 3:
             break
-    client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='Qwer3asdf')
+    client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='******')
     client.insert('ibet.results_date', [(datetime.now(),)], column_names='date')
 
 #Загружаем напрямую в CLickhouse
 
 def upload(extracted_data):
-    client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='Qwer3asdf')
+    client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='******')
     client.insert('ibet.results',extracted_data, column_names = ["date", "category", "subcategory", "team1", "team2", "event", "score1", "score2", "stavka", "f1", "f2", "total"]
 )
 
@@ -237,7 +237,7 @@ from kafka import KafkaProducer
 redis_client = redis.StrictRedis(
     host='localhost', 
     port=6379, 
-    password='Qwer3asdf', 
+    password='*****', 
     decode_responses=True
 )
 
