@@ -202,100 +202,448 @@ if __name__ == '__main__':
 <br></br>
 
 ---
-<a id="wrangling-section"></a>
+<a id="ibet-wrangling-section"></a>
 ## ~~~ 2. Обработка данных ~~~
 --- 
 
 
 ### Merge  
 
-Внешним слиянием соединяем три csv, округялем цифры, приводим валюту к доллару, убираем дубликаты, ошибки и находим самые выгодные сделки по продаже китай->рф и рф->китай
+По live ставкам данные поступает через REDIS в течение 10 секунд, в зависимости от страницы либо глубины поиска на сайте.
+
+Цель быстро сопоставить события и найти коэффиценты, которые максимально отличаются.
+
+Сложность в транлитерации между кририллицей и иностранными букмекерами + все собирают названия различных команд и лиг по разному.
+
+Решение - в транслитерации и сопоставлению названий команд/игроков отдельно по словам и по буквам специальными отдельными функциями.
+
+Так же координатор принимает данные через Redis и загружает в CLickhouse
+
 <details>
   <summary><strong>📜 Merge </strong></summary>
 
 ```python
+import redis
+import time
+from datetime import datetime,timedelta
+from random import uniform
+import json
 import pandas as pd
-import numpy as np
-from datetime import datetime
+from io import StringIO
+from kafka import KafkaProducer
 
-timestamp = datetime.now().strftime('%d-%m-%Y')
+# Тут все довольно сложно
 
-path_c5 = f'c5game_{timestamp}.csv'
-path_market = f'market_{timestamp}.csv'
-path_buff = f'buff_{timestamp}.csv'
-path_buff_buyorders = f'buff_buyorders_{timestamp}.csv'
+redis_client = redis.StrictRedis(
+    host='localhost', 
+    port=6379, 
+    password='Qwer3asdf', 
+    decode_responses=True
+)
 
-#автоматического обновления курса нет, но курс существенно юань/доллар не меняется много лет. 
-cny_usd = 0.14
-profit_coef = 0.9025
+# Во первых для синхронизации мы отправляем тайминги, рандомные, раз в 4 минуты +-60 секунд скраперы начинают синхронный сбор данных
+def publish_timing():
+    result = []
+    big_pause_delta = uniform(140,250)
+    big_pause = (datetime.now() + timedelta(seconds = big_pause_delta)).timestamp()
+    delta1 = uniform(15,21)
+    time1 = (datetime.now() + timedelta(seconds=delta1)).timestamp()
+    result.extend([big_pause,time1])
+    message = json.dumps(result)
+    redis_client.publish('timings', message)
+    print(f'отправлено сообщение {message}')
+    return big_pause
 
-df_c5 = pd.read_csv(path_c5, encoding = 'utf-16')
-df_c5.drop_duplicates()
-df_c5.rename(columns = {'c5_item':'Item'},inplace = True)
-#Создан фрейм с5 с колонками 'Item', 'c5_price'
+# перед началом сбора ждем готовности скраперов, получаем отмашку
+def gotovo():
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe('gotovo')
+    count = 0
+    for message in pubsub.listen():
+        if message['type'] == 'message' and message['data'] == 'gotovo':
+            count+=1
+            print(f'polycheno otvetov {count}')
+            if count == 3:
+                return True
+        elif message['type'] == 'message' and message['data'] == 'ne gotovo':
+            return False
 
-df_buff_buyorders = pd.read_csv(path_buff_buyorders, encoding = 'utf-16')
-df_buff_buyorders.rename(columns = {'buff_item':'Item', 'buff_price':'price'}, inplace = True)
-#Создан фрейм buff_buyorders с колонками 'Item', 'buyorders_price'
+# Функции делят команды на отельные слова, делают транслитерацию при необходимости, сравнивают слова побуквенно. 
+# Сравнение стандартными библиотеками для оценки схожести не работает!
+def are_words_equal_with_tolerance(word1, word2):
 
-df_market = pd.read_csv(path_market, encoding = 'utf-16')
-#Создан фрейм market с колонками 'Item', 'market_price'
+    if abs(len(word1) - len(word2)) > 2:
+        return False  #
 
-df_buff = pd.read_csv(path_buff, encoding = 'utf-16')
-df_buff.rename(columns = {'buff_item':'Item'},inplace = True )
-#Создан фрейм buff с колонками 'Item', 'buff_price'
+    # Считаем количество несовпадающих символов
+    diff_count = sum(1 for a, b in zip(word1, word2) if a != b)
+    
+    # Добавляем к числу отличий разницу в длине слов, если слова разной длины
+    diff_count += abs(len(word1) - len(word2))
+    
+    # Если различаются более чем на 2 символа, то считаем, что они не совпадают
+    return diff_count <= 2
 
-df_final = pd.merge(df_buff, df_market, on = 'Item', how = 'outer')
-df_final = pd.merge(df_final, df_c5, on = 'Item', how = 'outer')
-# внешний мердж
+def compare_names(name1, name2):
+    # Разделяем имена на части по символам "-" или "—"
+    parts1 = [part.strip() for part in name1.replace('—', '-').split('-') if len(part.strip())>=3]
+    words1_1 = [word.strip() for word in parts1[0].split(' ') if len(word.strip())>4]
+    words1_2 = [word.strip() for word in parts1[1].split(' ') if len(word.strip())>4]
+    parts2 = [part.strip() for part in name2.replace('—', '-').split('-') if len(part.strip())>=3]
+    words2_1 = [word.strip() for word in parts2[0].split(' ') if len(word.strip())>4]
+    words2_2 = [word.strip() for word in parts2[1].split(' ') if len(word.strip())>4]
+    check1 = False
+    check2 = False
 
-df_final['c5_price'] =  df_final['c5_price'].astype(float).fillna(0)
-df_final['buff_price'] =  df_final['buff_price'].astype(float).fillna(0)
-df_final['market_price'] =  df_final['market_price'].astype(float).fillna(0)
+    for words1 in words1_1:
+        for words2 in words2_1:
+            if are_words_equal_with_tolerance(words1,words2) == True:
+                check1 = True
+                break
+    for words1 in words1_2:
+        for words2 in words2_2:
+            if are_words_equal_with_tolerance(words1,words2) == True:
+                check2 = True
+                break
+            
+    return check1 and check2
 
-df_final['buff_price'] = df_final['buff_price'].astype(float).apply(lambda x : x*cny_usd)
-df_final['c5_price'] = df_final['c5_price'].astype(float).apply(lambda x : x*cny_usd)
-# выполнены округление и очистка, приведение йен к долларам
+# Далее простой merge - собираем из двух ДФ один
+def pari_olimp(df1, df2):
+    columns_pari = ['event', '1', 'X', '2', 'F1', 'F2', 'Tb', 'Tm', 'F', 'T', 'timestamp', 'category', 'subcategory']
+    columns_olimp = ['event_olimp', '1_olimp', 'X_olimp', '2_olimp', 'F1_olimp', 'F2_olimp', 'Tb_olimp', 'Tm_olimp', 'F_olimp', 'T_olimp', 'timestamp_olimp']
+    columns_pinn = ['timestamp_pinn', 'cate_pinn', 'event_pinn', 'event_reverse_pinn', '1_pinn', 'X_pinn', '2_pinn', 'F1_pinn', 'F2_pinn', 'Tb_pinn', 'Tm_pinn', 'F_pinn', 'T_pinn']
+    
 
-'''Сравнение цен по продаже китай -> маркет, выбор лучших сделок на c5game and buff163'''
-df_direct = df_final.copy(deep = True)
+    df2.columns = columns_olimp
 
-df_direct['market_price'] = df_direct['market_price'].astype(float).apply(lambda x: x*profit_coef)
-df_direct['market_c5'] = (df_direct['market_price']/df_direct['c5_price'])
-df_direct['market_buff'] = (df_direct['market_price']/df_direct['buff_price'])
-df_direct.replace([np.inf, -np.inf], 0, inplace=True)
 
-df_direct['best_price'] = np.maximum(df_direct['market_buff'], df_direct['market_c5'])
-df_direct['label'] = np.where(df_direct['market_buff']>df_direct['market_c5'],'buff','c5')
-df_direct = df_direct.sort_values(by = 'best_price', ascending=False)
-#
+    match_indexes = []
+    try:
+        for index1, row1 in df1.iterrows():
 
-columns_to_round = ['c5_price', 'market_price', 'buff_price', 'market_c5', 'market_buff', 'best_price']
-df_direct[columns_to_round] = df_direct[columns_to_round].round(4)
-df_direct['Item'] = df_direct['Item'].str.strip()
-df_direct.drop_duplicates(subset=['Item'], inplace=True)
-df_direct.reset_index(drop=True, inplace=True)
+            for index2, row2 in df2.iterrows():
+                if compare_names(row1['event'], row2['event_olimp']) == True:
+                    match_indexes.append([index1,index2]) 
+    except Exception as e:
+        print(row1,row2)         
 
-df_direct.drop(columns=['Date','Date_x','Date_y'], inplace=True)
-df_direct['Date'] = timestamp
 
-df_direct.drop_duplicates(inplace=True)
+    df = pd.DataFrame(columns=columns_pari+columns_olimp)
+    for index1, index2 in match_indexes:
+        row1 = df1.iloc[index1]
+        row2 = df2.iloc[index2]
+        combined = pd.DataFrame({
+            **row1.to_dict(),    
+            **row2.to_dict()     
+        }, index=[0])
+        dataframes = [df, combined]
+        valid_dataframes = [df for df in dataframes if not df.empty and not df.isna().all().all()]
+        df = pd.concat(valid_dataframes, ignore_index=True)
+    df.drop_duplicates(subset=['event'], keep= 'last',inplace= True)
+    df_olimp = df[['event', 'event_olimp', '1', '1_olimp', 'X', 'X_olimp', '2', '2_olimp', 'F1', 'F1_olimp', 'F2', 'F2_olimp', 'Tb', 'Tb_olimp', 'Tm', 'Tm_olimp', 'F', 'F_olimp', 'T', 'T_olimp', 'timestamp', 'timestamp_olimp', 'category', 'subcategory']]   
 
-df_direct.to_csv(f'direct_{timestamp}.csv',index = False, encoding = 'utf-16')
+    return df_olimp
 
-'''Сравнение цен по продаже маркет -> китай, выбор лучших сделок по ордерам на покупку на бафф'''
-df_reverse = pd.merge(df_market, df_buff_buyorders, on = 'Item', how = 'outer')
-df_reverse = df_reverse.fillna(0)
-df_reverse['buyorders_price'] = df_reverse['buyorders_price'].astype(float).apply(lambda x: x*cny_usd)
-df_reverse['coef'] = df_reverse['buyorders_price'] / df_reverse['market_price']
-df_reverse.replace(np.inf,0, inplace = True)
-df_reverse.sort_values(by = 'coef', ascending=False, inplace = True)
+# Далее простой merge - собираем из двух ДФ один
+def pari_pinn(df1, df2):
+    columns_pari = ['event', '1', 'X', '2', 'F1', 'F2', 'Tb', 'Tm', 'F', 'T', 'timestamp', 'category', 'subcategory']
+    columns_pinn = ['timestamp_pinn', 'cate_pinn', 'event_pinn', 'event_reverse_pinn', '1_pinn', 'X_pinn', '2_pinn', 'F1_pinn', 'F2_pinn', 'Tb_pinn', 'Tm_pinn', 'F_pinn', 'T_pinn']
+    
 
-df_reverse.drop(columns=['Date_x','Date_x'], inplace=True)
-df_reverse['Date'] = timestamp
-df_reverse.drop_duplicates(inplace = True)
+    df2.columns = columns_pinn
 
-df_reverse.to_csv(f'reverse_{timestamp}.csv',index = False, encoding = 'utf-16')
+    match_indexes = []
+    for index1, row1 in df1.iterrows():
+        for index2, row2 in df2.iterrows():
+            if compare_names(row1['event'], row2['event_pinn']) == True or compare_names(row1['event'], row2['event_reverse_pinn']) == True:
+                match_indexes.append([index1,index2])          
+            if compare_names(row1['event'], row2['event_pinn']) == False and compare_names(row1['event'], row2['event_reverse_pinn']) == True:
+                df2.at[index2, 'event_pinn'] = row2['event_reverse_pinn']
+                df2.at[index2, '1_pinn'], df2.at[index2, '2_pinn'] = row2['2_pinn'], row2['1_pinn']
+                df2.at[index2, 'F1_pinn'], df2.at[index2, 'F2_pinn'] = row2['F2_pinn'], row2['F1_pinn']
+
+
+
+    df2.columns = columns_pinn
+    df = pd.DataFrame(columns=columns_pari+columns_pinn)
+    for index1, index2 in match_indexes:
+        row1 = df1.iloc[index1]
+        row2 = df2.iloc[index2]
+        combined = pd.DataFrame({
+            **row1.to_dict(),    
+            **row2.to_dict()     
+        }, index=[0])
+        dataframes = [df, combined]
+        valid_dataframes = [df for df in dataframes if not df.empty and not df.isna().all().all()]
+        df = pd.concat(valid_dataframes, ignore_index=True)
+    df.drop_duplicates(subset=['event'], keep= 'last',inplace= True)   
+    df_pinn = df[['event', 'event_pinn', '1', '1_pinn', 'X', 'X_pinn', '2', '2_pinn', 'F1', 'F1_pinn', 'F2', 'F2_pinn', 'Tb', 'Tb_pinn', 'Tm', 'Tm_pinn', 'F', 'F_pinn', 'T', 'T_pinn', 'timestamp', 'timestamp_pinn', 'category','subcategory','cate_pinn']
+    ]
+
+    index_to_drop = []
+
+    for index, row in df_pinn.iterrows():
+        if str(row['category']).lower() != str(row['cate_pinn']).lower():
+            index_to_drop.append(index)
+    print('убираем строки:', index_to_drop)
+    df_pinn = df_pinn.drop(index = index_to_drop)
+    df_pinn = df_pinn.drop(columns = 'cate_pinn')  
+    
+    return df_pinn
+
+# из собранных воедино ДФ ищем разницу коэффицентов по совпадающим событиям
+def compare(df, event, event_2, _1, _1_2, X, X_2, _2, _2_2, F1, F1_2, F2, F2_2, Tb, Tb_2, Tm, Tm_2, F, F_2, T, T_2, timestamp, timestamp_2, label,subcategory):
+    
+    numeric_columns = [_1, _1_2, X, X_2, _2, _2_2, F1, F1_2, F2, F2_2, Tb, Tb_2, Tm, Tm_2, F, F_2, T, T_2, timestamp, timestamp_2]
+    for col in numeric_columns:
+        df[col] = pd.to_numeric(df[col],errors='coerce')
+
+    stavki = []
+
+    for index, row in df.iterrows():
+        for pair in [[_1,_1_2], [X, X_2], [_2, _2_2]]:
+            try:
+                coef = max(row[pair[0]]/row[pair[1]], row[pair[1]]/(row[pair[0]]))
+                if  coef>1.15 and abs(row[timestamp] - row[timestamp_2])<30 and (1.1<=row[pair[0]]<=2 or 1.1<=row[pair[1]]<=3):
+                    row_stavki = []
+                    row_stavki.append(row[event])
+                    row_stavki.append(row[label])
+                    row_stavki.append(str(pair[0]).replace('_',''))
+                    row_stavki.append('-')
+                    row_stavki.extend([row[pair[0]], row[pair[1]]])
+                    if row[pair[0]]>row[pair[1]]:
+                        row_stavki.append('Parimatch')
+                    else:
+                        row_stavki.append('pinnacle_or_olimp')
+                    coef = round(coef, 2)
+                    row_stavki.append(coef)
+                    row_stavki.append(row[timestamp])
+                    row_stavki.append(row[timestamp_2])
+                    stavki.append(row_stavki)
+            except Exception as e:
+                print(f'возникла ошибка {e}')
+                pass
+            
+        for pair in [[F1, F1_2],[F2,F2_2]]:
+            if row[F] == row[F_2]:
+                try:
+                    row_stavki = []
+                    coef = max(row[pair[0]]/row[pair[1]], row[pair[1]] / row[pair[0]])
+                    if  coef>1.15 and abs(row[timestamp] - row[timestamp_2])<30 and (1.3<=row[pair[0]]<=2 or 1.1<=row[pair[1]]<=3):
+                        row_stavki = []
+                        row_stavki.append(row[event])
+                        row_stavki.append(row[label])
+                        row_stavki.append(str(pair[0]).replace('_',''))
+                        row_stavki.append(row[F])
+                        row_stavki.extend([row[pair[0]], row[pair[1]]])
+                        if row[pair[0]]>row[pair[1]]:
+                            row_stavki.append('Parimatch')
+                        else:
+                            row_stavki.append('pinnacle_or_olimp')
+                        coef = round(coef, 2)
+                        row_stavki.append(coef)
+                        row_stavki.append(row[timestamp])
+                        row_stavki.append(row[timestamp_2])
+                        stavki.append(row_stavki)
+                except Exception as e:
+                    print(f'возникла ошибка {e}')
+                    pass
+
+        for pair in [[Tb, Tb_2],[Tm,Tm_2]]:
+            if row[T] == row[T_2]:
+                try:
+                    row_stavki = []
+                    coef = max(row[pair[0]]/row[pair[1]], row[pair[1]] / row[pair[0]])
+                    if  coef>1.15 and abs(row[timestamp] - row[timestamp_2])<30 and (1.1<=row[pair[0]]<=2 or 1.1<=row[pair[1]]<=3):
+                        row_stavki = []
+                        row_stavki.append(row[event])
+                        row_stavki.append(row[label])
+                        row_stavki.append(str(pair[0]).replace('_',''))
+                        row_stavki.append(row[T])
+                        row_stavki.extend([row[pair[0]], row[pair[1]]])
+                        if row[pair[0]]>row[pair[1]]:
+                            row_stavki.append('Parimatch')
+                        else:
+                            row_stavki.append('pinnacle_or_olimp')
+                        coef = round(coef, 2)
+                        row_stavki.append(coef)
+                        row_stavki.append(row[timestamp])
+                        row_stavki.append(row[timestamp_2])
+                        stavki.append(row_stavki)
+                except Exception as e:
+                    print(f'возникла ошибка {e}')
+                    pass
+    df = pd.DataFrame(stavki, columns = ['Event','Category','Stavka', 'F_T', 'Coef1', 'Coef2','Platform', 'Ratio', 'Timestamp','Timestamp_2'])  
+    df.sort_values(by=['Event','Ratio'], inplace=True)    
+    df.drop_duplicates(subset='Event', keep='last',inplace=True,ignore_index=True) 
+    df.sort_values(by=['Ratio'], inplace=True, ascending=False)   
+    return(df)
+
+def listen():
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe('df')
+    df_pari, df_pinn, df_olimp = None, None, None
+    count_parimatch, count_pinnacle, count_olimpbet = 0, 0, 0
+    
+    for message in pubsub.listen():
+        if message['type'] == 'message':
+            print('получили сообщение')
+            string_df = json.loads(message['data'])
+            
+            if string_df['source'] == 'pinnacle':
+                count_pinnacle += 1
+                print(f'получили пинакл дф {count_pinnacle}')
+                df_pinnacle = string_df['data']
+                df_pinn = pd.read_csv(StringIO(df_pinnacle))
+                print(df_pinn.shape)
+                print(df_pinn.head())
+                
+            if string_df['source'] == 'parimatch':
+                count_parimatch += 1
+                print(f'получили париматч дф {count_parimatch}')
+                df_parimatch = string_df['data']
+                df_pari = pd.read_csv(StringIO(df_parimatch))
+                print(df_pari.shape)
+                print(df_pari.head())
+                
+            if string_df['source'] == 'olimpbet':
+                count_olimpbet += 1
+                print(f'получили олимпбет {count_olimpbet}')
+                df_olimpbet = string_df['data']
+                df_olimp = pd.read_csv(StringIO(df_olimpbet))
+                print(df_olimp.shape)
+                print(df_olimp.head())
+                
+            if count_parimatch == 1 and count_olimpbet == 1 and count_pinnacle == 1:
+                print('все данные получены')
+                
+
+                df_pari_olimp = None
+                df_pari_pinn = None
+
+                if df_pari is not None and df_olimp is not None:
+                    df_pari_olimp = pari_olimp(df_pari, df_olimp)
+                if df_pari is not None and df_pinn is not None:
+                    df_pari_pinn = pari_pinn(df_pari, df_pinn)
+                    
+                if df_pari_pinn is not None:  
+                    df_pinn_final = compare(
+                        df_pari_pinn, 
+                        event='event', 
+                        event_2='event_pinn', 
+                        _1='1', 
+                        _1_2='1_pinn', 
+                        X='X', 
+                        X_2='X_pinn', 
+                        _2='2', 
+                        _2_2='2_pinn', 
+                        F1='F1', 
+                        F1_2='F1_pinn', 
+                        F2='F2', 
+                        F2_2='F2_pinn', 
+                        Tb='Tb', 
+                        Tb_2='Tb_pinn', 
+                        Tm='Tm', 
+                        Tm_2='Tm_pinn', 
+                        F='F', 
+                        F_2='F_pinn', 
+                        T='T', 
+                        T_2='T_pinn', 
+                        timestamp='timestamp', 
+                        timestamp_2='timestamp_pinn', 
+                        label='category',
+                        subcategory = 'subcategory'
+                    )
+                    print('Есть сравнение пари и пинн')
+                    df_pinn_final['Platform'] = df_pinn_final['Platform'].str.replace('pinnacle_or_olimp', 'Pinn_Pari')
+                    df_pinn_final['Platform'] = df_pinn_final['Platform'].str.replace('Parimatch', 'Pari_Pinn')
+                    print(df_pinn_final.head())
+                    print(df_pinn_final.shape)
+
+                if df_pari_olimp is not None:
+                    df_olimp_final = compare(
+                        df_pari_olimp, 
+                        event='event', 
+                        event_2='event_olimp', 
+                        _1='1', 
+                        _1_2='1_olimp', 
+                        X='X', 
+                        X_2='X_olimp', 
+                        _2='2', 
+                        _2_2='2_olimp', 
+                        F1='F1', 
+                        F1_2='F1_olimp', 
+                        F2='F2', 
+                        F2_2='F2_olimp', 
+                        Tb='Tb', 
+                        Tb_2='Tb_olimp', 
+                        Tm='Tm', 
+                        Tm_2='Tm_olimp', 
+                        F='F', 
+                        F_2='F_olimp', 
+                        T='T', 
+                        T_2='T_olimp', 
+                        timestamp='timestamp', 
+                        timestamp_2='timestamp_olimp', 
+                        label='category',
+                        subcategory = 'subcategory'
+                    )
+                    print('Есть сравнение пари и олимп')
+                    df_olimp_final['Platform'] = df_olimp_final['Platform'].str.replace('pinnacle_or_olimp','Olimp_Pari')
+                    df_olimp_final['Platform'] = df_olimp_final['Platform'].str.replace('Parimatch','Pari_Olimp')
+                    print(df_olimp_final.head())
+                    print(df_olimp_final.shape)
+                
+                # Break the loop after processing
+                return df_pinn_final,df_olimp_final
+
+# загружаем в KAFKA найденные несовпадающие коэффиценты
+def send_dataframe_to_kafka(df, topic = 'ibet', bootstrap_servers = '10.140.0.2:9092'):
+    producer = KafkaProducer(
+        bootstrap_servers=bootstrap_servers,
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
+    
+    for _, row in df.iterrows():
+
+        message = row.to_dict()
+        producer.send(topic, message)
+        
+    producer.flush()
+    producer.close()
+
+#Собираем все здесь. 
+# Сначала ждем готовность. 
+# Затем отправляем время синхронного скрапинга. 
+# После получения всех данных сопоставляем значения. 
+# Затем загружаем данные в Clickhouse и повторяем
+
+def main(): 
+    if gotovo():
+        try:
+            print('готово')
+            time.sleep(1)
+            while True:
+                big_pause = publish_timing()
+                print(f'отправили тайминг {datetime.now()}')
+                print('начали слушать')
+                pinn,olimp = listen()
+                send_dataframe_to_kafka(pinn)
+                send_dataframe_to_kafka(olimp)
+                print(f'начали спать в {datetime.now()}')
+                while time.time()<big_pause+10:
+                    time.sleep(1)
+                print(f'закончили спать в {datetime.now()}')
+        except KeyboardInterrupt:
+            print('астанавитесь')   
+    else:
+        raise ValueError('Не готово')
+
+
+if __name__ == '__main__':
+    main()
+
 ```
 </details>  
 <br>
