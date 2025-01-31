@@ -7,12 +7,13 @@
 
 Данные собираются поочередно с трех сайтов и и передаются в Redis либо Clickhouse.
 В Redis передаются данные по Live ставкам для быстрого расчета и отображения.
-В clickhouse передаются все данные для дэшборда и аналитики
+
+В Clickhouse передаются все данные для дэшборда и аналитики
   
 Для примера выкладываю скрипт сбора данных с сайта с Parimatch с бесконечной прокрутуой. 
 
-Из инетерсного - данные обновляются только при выводе на дисплей, обойти эту защиту нельзя. 
-Техническое решение - виртуальный дисплей + меньшение масштаба
+Из интерсного - данные обновляются только при выводе на дисплей, обойти эту защиту нельзя. 
+Техническое решение - виртуальный дисплей + уменьшение масштаба
 
 
 <details>
@@ -177,7 +178,7 @@ def scroll_container(driver,date):
     client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='Qwer3asdf')
     client.insert('ibet.results_date', [(datetime.now(),)], column_names='date')
 
-#Загружаем наприямую в CLickhouse
+#Загружаем напрямую в CLickhouse
 
 def upload(extracted_data):
     client = clickhouse_connect.get_client(host='10.140.0.7', port=8123, username='default', password='Qwer3asdf')
