@@ -752,13 +752,14 @@ inter.broker.listener.name=BROKER
 Примеров нет, есть несколько гайдов, но там никак не регулируются ни threads ни ядра
 Суть - сильно ограничить использования ядер, памяти и сделать эти настройки согласованными:
 
-'''properties
-<!-- Maximum number of concurrent queries. -->
+<?xml version="1.0"?>
+<!-- Ограничение на число параллельных запросов -->
 <max_concurrent_queries>16</max_concurrent_queries>
--->
+
 <max_server_memory_usage>3221225472</max_server_memory_usage>
 <max_thread_pool_size>10000</max_thread_pool_size>
-<!-- Configure other thread pools: -->
+
+<!-- Настройки потоков -->
 <background_buffer_flush_schedule_pool_size>1</background_buffer_flush_schedule_pool_size>
 <background_pool_size>2</background_pool_size>
 <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
@@ -769,16 +770,23 @@ inter.broker.listener.name=BROKER
 <background_schedule_pool_size>1</background_schedule_pool_size>
 <background_message_broker_schedule_pool_size>1</background_message_broker_schedule_pool_size>
 <background_distributed_schedule_pool_size>1</background_distributed_schedule_pool_size>
+
+<!-- Загрузка таблиц -->
 <tables_loader_foreground_pool_size>0</tables_loader_foreground_pool_size>
 <tables_loader_background_pool_size>0</tables_loader_background_pool_size>
 <async_load_databases>false</async_load_databases>
+
 <max_server_memory_usage_to_ram_ratio>1</max_server_memory_usage_to_ram_ratio>
+
+<!-- Настройки хранения данных -->
 <storage_configuration>
-<disks>
-    <default>
-        <keep_free_space_bytes>1073741824</keep_free_space_bytes>
-    </default>
-```
+    <disks>
+        <default>
+            <keep_free_space_bytes>1073741824</keep_free_space_bytes>
+        </default>
+    </disks>
+</storage_configuration>
+
 
 С ЭТИМИ НАСТРОЙКАМИ CLICKHOUSE СЛОМАЕТСЯ!
 нужно отдельно разобраться в логах с причинами, и найти в документации, что такое снижение ядер конфликтует с настройками движка MergeTree по умолчанию, и их надо отдельно добавить из документации
