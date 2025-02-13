@@ -697,3 +697,30 @@ RealVNC для соединения с удаленным рабочим сто�
 </details>  
 
 <br>
+
+---
+<a id="ibet-kafka"></a>
+## ~~~ 5. Kafka ~~~
+--- 
+Kafka - гораздо сложнее. Ключ здесь - по шагам следовать документации.
+Устанавливаем, распаковываем через tar, создаем кластер, записываем его ID, форматируем директорию логов специальной командой, и запускаем сервер.
+Дальше самое интересное, настроить работу и взаимодействие двух серверов через KRAFT.
+Примеров по этому не так много (вообще почти нет), приведу свой конфиг:
+
+```properties
+process.roles=broker,controller
+node.id=1
+listener.security.protocol=PLAINTEXT
+listener.security.protocol.map=BROKER:PLAINTEXT, CONTROLLER:PLAINTEXT
+listeners=BROKER://10.140.0.7:9092,CONTROLLER://10.140.0.7:9093
+advertised.listeners=BROKER://10.140.0.7:9092
+log.retention.hours=24
+num.partitions=1
+default.replication.factor=1
+log.segment.bytes=1073741824
+log.retention.bytes=1073741824
+kafka.cluster.id=L-bJf_UEQ6ioPQQhc-IZPg
+log.dirs=/opt/kafka/logs
+controller.quorum.voters=1@10.140.0.7:9093,2@10.140.0.2:9093
+controller.listener.names=CONTROLLER
+inter.broker.listener.name=BROKER
