@@ -758,7 +758,6 @@ inter.broker.listener.name=BROKER
 -->
 <max_server_memory_usage>3221225472</max_server_memory_usage>
 <max_thread_pool_size>10000</max_thread_pool_size>
-
 <!-- Configure other thread pools: -->
 <background_buffer_flush_schedule_pool_size>1</background_buffer_flush_schedule_pool_size>
 <background_pool_size>2</background_pool_size>
@@ -772,12 +771,8 @@ inter.broker.listener.name=BROKER
 <background_distributed_schedule_pool_size>1</background_distributed_schedule_pool_size>
 <tables_loader_foreground_pool_size>0</tables_loader_foreground_pool_size>
 <tables_loader_background_pool_size>0</tables_loader_background_pool_size>
-
 <async_load_databases>false</async_load_databases>
-
-
 <max_server_memory_usage_to_ram_ratio>1</max_server_memory_usage_to_ram_ratio>
-
 <storage_configuration>
 <disks>
     <default>
