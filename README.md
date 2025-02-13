@@ -645,6 +645,7 @@ if __name__ == '__main__':
     main()
 
 ```
+
 </details>  
 <br>
 
@@ -724,6 +725,7 @@ log.dirs=/opt/kafka/logs
 controller.quorum.voters=1@10.140.0.7:9093,2@10.140.0.2:9093
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=BROKER
+```
 
 Каждый сервер благодаря kraft может быть и брокером сообщений, и контроллером для управления метаданными
 Коротко - создаем alias для Broker и Controller. В данном случае они на одном сервере но разных портах.
@@ -774,7 +776,7 @@ advertised.listeners - это адрес по которому находят н
             <default>
                 <keep_free_space_bytes>1073741824</keep_free_space_bytes>
             </default>
-
+```
 
 С ЭТИМИ НАСТРОЙКАМИ CLICKHOUSE СЛОМАЕТСЯ!
 нужно отдельно разобраться в логах с причинами, и найти в документации, что такое снижение ядер конфликтует с настройками движка MergeTree по умолчанию, и их надо отдельно добавить из документации
@@ -786,3 +788,4 @@ advertised.listeners - это адрес по которому находят н
         <number_of_free_entries_in_pool_to_execute_optimize_entire_partition>1</number_of_free_entries_in_pool_to_execute_optimize_entire_partition>
         <number_of_free_entries_in_pool_to_lower_max_size_of_merge>1</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
     </merge_tree>
+```
