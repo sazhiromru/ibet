@@ -792,7 +792,7 @@ inter.broker.listener.name=BROKER
 
 Нужно отдельно разобраться в логах с причинами, и найти в документации, что такое снижение ядер конфликтует с настройками движка MergeTree по умолчанию, и их надо отдельно добавить из документации.
 
-'''xml
+```xml
     <merge_tree>
         <max_suspicious_broken_parts>5</max_suspicious_broken_parts>
         <number_of_free_entries_in_pool_to_execute_mutation>1</number_of_free_entries_in_pool_to_execute_mutation>
