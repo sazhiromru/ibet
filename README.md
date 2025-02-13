@@ -664,7 +664,7 @@ RealVNC для соединения с удаленным рабочим сто�
   ![installation](https://raw.githubusercontent.com/sazhiromru/images/refs/heads/main/ibet/vnc_server_install.PNG)
   ![start VNC](https://github.com/sazhiromru/images/blob/main/ibet/VNCserverstarted.PNG?raw=true)
   ![VNC to localhost](https://github.com/sazhiromru/images/blob/main/ibet/localhost_vnc.PNG?raw=true)
-  ![Real VNC](https://github.com/sazhiromru/images/blob/main/ibet/connectin_real_vncPNG.PNG?raw=true)
+  ![Real VNC](https://github.com/sazhiromru/images/blob/main/ibet/connectin_real_vnc.PNG?raw=true)
   ![remote desktop](https://github.com/sazhiromru/images/blob/main/ibet/remote_desktop_vnc.PNG?raw=true)
 </details>  
 
