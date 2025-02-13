@@ -724,3 +724,65 @@ log.dirs=/opt/kafka/logs
 controller.quorum.voters=1@10.140.0.7:9093,2@10.140.0.2:9093
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=BROKER
+
+Каждый сервер благодаря kraft может быть и брокером сообщений, и контроллером для управления метаданными
+Коротко - создаем alias для Broker и Controller. В данном случае они на одном сервере но разных портах.
+У нас минимальная конфигурация, и нет ни разделения ни репликации
+Папка логов так же задается здесь, и к ней надо дать право записи kafka либо поменять владельца на kafka 
+через listener.security.protocol.map=BROKER:PLAINTEXT, CONTROLLER:PLAINTEXT задаем протокол шифрования, и у нас его нет plaintext - обычный текст
+advertised.listeners - это адрес по которому находят наш сервер
+В кворум вносим оба Нода
+Для второго нода настройки почти аналогичные, меняются ip и номер node
+
+---
+<a id="ibet-kafka"></a>
+## ~~~ 6. ClickHouse ~~~
+--- 
+Запуск и настройка Clickhouse для стабильной работы на сервере с двумя ядрами и 4гб памяти - целая эпопея.
+Примеров нет, есть несколько гайдов, но там никак не регулируются ни threads ни ядра
+Суть - сильно ограничить использования ядер, памяти и сделать эти настройки согласованными:
+
+'''properties
+   <!-- Maximum number of concurrent queries. -->
+    <max_concurrent_queries>16</max_concurrent_queries>
+      -->
+    <max_server_memory_usage>3221225472</max_server_memory_usage>
+    <max_thread_pool_size>10000</max_thread_pool_size>
+
+    <!-- Configure other thread pools: -->
+    <background_buffer_flush_schedule_pool_size>1</background_buffer_flush_schedule_pool_size>
+    <background_pool_size>2</background_pool_size>
+    <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
+    <background_merges_mutations_scheduling_policy>round_robin</background_merges_mutations_scheduling_policy>
+    <background_move_pool_size>1</background_move_pool_size>
+    <background_fetches_pool_size>1</background_fetches_pool_size>
+    <background_common_pool_size>2</background_common_pool_size>
+    <background_schedule_pool_size>1</background_schedule_pool_size>
+    <background_message_broker_schedule_pool_size>1</background_message_broker_schedule_pool_size>
+    <background_distributed_schedule_pool_size>1</background_distributed_schedule_pool_size>
+    <tables_loader_foreground_pool_size>0</tables_loader_foreground_pool_size>
+    <tables_loader_background_pool_size>0</tables_loader_background_pool_size>
+
+    <async_load_databases>false</async_load_databases>
+
+    <!-- On memory constrained environments you may have to set this to value larger than 1.
+      -->
+    <max_server_memory_usage_to_ram_ratio>1</max_server_memory_usage_to_ram_ratio>
+
+    <storage_configuration>
+        <disks>
+            <default>
+                <keep_free_space_bytes>1073741824</keep_free_space_bytes>
+            </default>
+
+
+С ЭТИМИ НАСТРОЙКАМИ CLICKHOUSE СЛОМАЕТСЯ!
+нужно отдельно разобраться в логах с причинами, и найти в документации, что такое снижение ядер конфликтует с настройками движка MergeTree по умолчанию, и их надо отдельно добавить из документации
+
+'''properties
+    <merge_tree>
+        <max_suspicious_broken_parts>5</max_suspicious_broken_parts>
+        <number_of_free_entries_in_pool_to_execute_mutation>1</number_of_free_entries_in_pool_to_execute_mutation>
+        <number_of_free_entries_in_pool_to_execute_optimize_entire_partition>1</number_of_free_entries_in_pool_to_execute_optimize_entire_partition>
+        <number_of_free_entries_in_pool_to_lower_max_size_of_merge>1</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
+    </merge_tree>
