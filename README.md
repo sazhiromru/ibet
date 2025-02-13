@@ -698,6 +698,7 @@ RealVNC для соединения с удаленным рабочим сто�
 </details>  
 
 <br>
+<br>
 
 ---
 <a id="ibet-kafka"></a>
@@ -741,6 +742,9 @@ inter.broker.listener.name=BROKER
 Для второго нода настройки почти аналогичные, меняются ip и номер node
 
 ---
+<br>
+<br>
+
 <a id="ibet-kafka"></a>
 ## ~~~ 6. ClickHouse ~~~
 --- 
@@ -749,37 +753,36 @@ inter.broker.listener.name=BROKER
 Суть - сильно ограничить использования ядер, памяти и сделать эти настройки согласованными:
 
 '''properties
-   <!-- Maximum number of concurrent queries. -->
-    <max_concurrent_queries>16</max_concurrent_queries>
-      -->
-    <max_server_memory_usage>3221225472</max_server_memory_usage>
-    <max_thread_pool_size>10000</max_thread_pool_size>
+<!-- Maximum number of concurrent queries. -->
+<max_concurrent_queries>16</max_concurrent_queries>
+-->
+<max_server_memory_usage>3221225472</max_server_memory_usage>
+<max_thread_pool_size>10000</max_thread_pool_size>
 
-    <!-- Configure other thread pools: -->
-    <background_buffer_flush_schedule_pool_size>1</background_buffer_flush_schedule_pool_size>
-    <background_pool_size>2</background_pool_size>
-    <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
-    <background_merges_mutations_scheduling_policy>round_robin</background_merges_mutations_scheduling_policy>
-    <background_move_pool_size>1</background_move_pool_size>
-    <background_fetches_pool_size>1</background_fetches_pool_size>
-    <background_common_pool_size>2</background_common_pool_size>
-    <background_schedule_pool_size>1</background_schedule_pool_size>
-    <background_message_broker_schedule_pool_size>1</background_message_broker_schedule_pool_size>
-    <background_distributed_schedule_pool_size>1</background_distributed_schedule_pool_size>
-    <tables_loader_foreground_pool_size>0</tables_loader_foreground_pool_size>
-    <tables_loader_background_pool_size>0</tables_loader_background_pool_size>
+<!-- Configure other thread pools: -->
+<background_buffer_flush_schedule_pool_size>1</background_buffer_flush_schedule_pool_size>
+<background_pool_size>2</background_pool_size>
+<background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
+<background_merges_mutations_scheduling_policy>round_robin</background_merges_mutations_scheduling_policy>
+<background_move_pool_size>1</background_move_pool_size>
+<background_fetches_pool_size>1</background_fetches_pool_size>
+<background_common_pool_size>2</background_common_pool_size>
+<background_schedule_pool_size>1</background_schedule_pool_size>
+<background_message_broker_schedule_pool_size>1</background_message_broker_schedule_pool_size>
+<background_distributed_schedule_pool_size>1</background_distributed_schedule_pool_size>
+<tables_loader_foreground_pool_size>0</tables_loader_foreground_pool_size>
+<tables_loader_background_pool_size>0</tables_loader_background_pool_size>
 
-    <async_load_databases>false</async_load_databases>
+<async_load_databases>false</async_load_databases>
 
-    <!-- On memory constrained environments you may have to set this to value larger than 1.
-      -->
-    <max_server_memory_usage_to_ram_ratio>1</max_server_memory_usage_to_ram_ratio>
 
-    <storage_configuration>
-        <disks>
-            <default>
-                <keep_free_space_bytes>1073741824</keep_free_space_bytes>
-            </default>
+<max_server_memory_usage_to_ram_ratio>1</max_server_memory_usage_to_ram_ratio>
+
+<storage_configuration>
+<disks>
+    <default>
+        <keep_free_space_bytes>1073741824</keep_free_space_bytes>
+    </default>
 ```
 
 С ЭТИМИ НАСТРОЙКАМИ CLICKHOUSE СЛОМАЕТСЯ!
