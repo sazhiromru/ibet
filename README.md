@@ -647,3 +647,23 @@ if __name__ == '__main__':
 ```
 </details>  
 <br>
+
+### VNC 
+
+Сайты используют Google Capthca, в среднем раз в сутки.
+Обойти это невозможно, единственный способ - пройти ее раз в сутки.
+Для этого используем VNC
+
+Устанавливаем XFCE4 в качестве рабочего стола, gnome icon для иконок и tightvnc для отображения.
+RealVNC для соединения с удаленным рабочим столом
+Так же создаем профиль для браузера
+
+<details>
+  <summary><strong>🖼️ VNC </strong></summary>
+  ![installation](https://raw.githubusercontent.com/sazhiromru/images/refs/heads/main/ibet/vnc%20server%20install.PNG)
+  ![start VNC](https://github.com/sazhiromru/images/blob/main/ibet/VNCserver%20started.PNG?raw=true)
+  ![VNC to localhost](https://github.com/sazhiromru/images/blob/main/ibet/localhost%20vnc.PNG?raw=true)
+  ![Real VNC](https://github.com/sazhiromru/images/blob/main/ibet/connectin%20real%20vncPNG.PNG?raw=true)
+  ![remote desktop](https://github.com/sazhiromru/images/blob/main/ibet/remote%20desktop%20vnc.PNG?raw=true)
+</details>  
+<br>
