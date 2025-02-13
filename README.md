@@ -659,11 +659,14 @@ RealVNC для соединения с удаленным рабочим сто�
 Так же создаем профиль для браузера
 
 <details>
-  <summary><strong>🖼️ VNC </strong></summary>
-  ![installation](https://raw.githubusercontent.com/sazhiromru/images/refs/heads/main/ibet/vnc%20server%20install.PNG)
-  ![start VNC](https://github.com/sazhiromru/images/blob/main/ibet/VNCserver%20started.PNG?raw=true)
-  ![VNC to localhost](https://github.com/sazhiromru/images/blob/main/ibet/localhost%20vnc.PNG?raw=true)
-  ![Real VNC](https://github.com/sazhiromru/images/blob/main/ibet/connectin%20real%20vncPNG.PNG?raw=true)
-  ![remote desktop](https://github.com/sazhiromru/images/blob/main/ibet/remote%20desktop%20vnc.PNG?raw=true)
-</details>  
+  <summary><strong>🖼️ VNC</strong></summary>
+
+  📷 [Installation](https://raw.githubusercontent.com/sazhiromru/images/main/ibet/vnc_server_install.PNG)  
+  📷 [Start VNC](https://raw.githubusercontent.com/sazhiromru/images/main/ibet/VNCserver_started.PNG)  
+  📷 [VNC to localhost](https://raw.githubusercontent.com/sazhiromru/images/main/ibet/localhost_vnc.PNG)  
+  📷 [Real VNC](https://raw.githubusercontent.com/sazhiromru/images/main/ibet/connectin_real_vnc.PNG)  
+  📷 [Remote Desktop](https://raw.githubusercontent.com/sazhiromru/images/main/ibet/remote_desktop_vnc.PNG)  
+
+</details>
+
 <br>
