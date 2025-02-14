@@ -1,4 +1,3 @@
-![image](https://github.com/user-attachments/assets/4e6065d4-d55e-4627-b7b9-777572ec1bfc)# ibet
 
 ---
 <a id="ibet-scraping-section"></a>
