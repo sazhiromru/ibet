@@ -745,7 +745,7 @@ inter.broker.listener.name=BROKER
 <br>
 
 ---
-<a id="ibet-kafka"></a>
+<a id="ibet-clickhouse"></a>
 ## ~~~ 6. ClickHouse ~~~
 ---   
 
@@ -849,4 +849,49 @@ SELECT
 FROM kafka;
 ```
 - Ну и финальная таблица
+```sql
+CREATE TABLE stavki (
+    event String,
+    category String,
+    subcategory String,
+    stavka String,
+    f_t String,
+    coef1 Float64,
+    coef2 Float64,
+    platform String,
+    ratio Float64,
+    timestamp DateTime,
+    timestamp_2 DateTime,
+    time_delta Int32 
+ ) ENGINE = MergeTree()
+ORDER BY timestamp;
+```
+---
+<a id="ibet-postgres"></a>
+## ~~~ 6. Postgres ~~~
+---   
+Нужно установить postgres, создать таблицу для airflow, добавить пользователя airflow, и дать ему права на внесение записей. Затем в конфиге airflow поменять базу данных на postgres.
+ДАЖЕ ПРИ МИНИМАЛЬНОЙ НАГРУЗКЕ НЕОБХОДИМО СМЕНИТЬ БАЗУ ДАННЫХ AIRFLOW!  
+С БД по умолчанию даже два dag перестают функционировать нормально, и связь с airflow scheduler постоянно теряется
+<details>
+  <summary><strong>🖼️ Postgres </strong></summary>
+  
+  ![settings](https://github.com/sazhiromru/images/blob/main/ibet/postgre%20airflow-setting.PNG?raw=true)
+  ![airflow config](https://github.com/sazhiromru/images/blob/main/ibet/postgre_airflowsetup.PNG?raw=true)
 
+</details>  
+
+Так же, нужно скорректировать настройки pg_hba.conf чтобы локальные пользователи могли заходить без пароля, т е чтобы airflow работало без пароля
+<details>
+  <summary><strong>🖼️ Postgres conf </strong></summary>
+  
+  ![conf](https://github.com/sazhiromru/images/blob/main/ibet/postgres-airflow.PNG?raw=true)
+
+</details>
+
+---
+<a id="ibet-airflow"></a>
+## ~~~ 8. Airflow ~~~
+---  
+С Airflow, как и c Kafka, очень важно внимательно смотреть документацию. Программа способна удивлять, для глюков и багов есть специальный огромный раздел. Например, у вас может не срабатывать команда Bash при подключении по SSH. После суток поиска ответ находиться в документации - надо поставить после команды пробел. Просто так. Потому что потому. Так бывает, ставьте пробел - заработает.   
+И ведь заработало. 
