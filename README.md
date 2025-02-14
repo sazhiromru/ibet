@@ -865,6 +865,9 @@ CREATE TABLE stavki (
  ) ENGINE = MergeTree()
 ORDER BY timestamp;
 ```
+<br>
+<br>
+
 ---
 <a id="ibet-postgres"></a>
 ## ~~~ 6. Postgres ~~~
@@ -887,6 +890,9 @@ ORDER BY timestamp;
   ![conf](https://github.com/sazhiromru/images/blob/main/ibet/postgres-airflow.PNG?raw=true)
 
 </details>
+<br>
+<br>
+
 
 ---
 <a id="ibet-airflow"></a>
@@ -918,6 +924,10 @@ ORDER BY timestamp;
   ![dags](https://github.com/sazhiromru/images/blob/main/ibet/airflow-dags.PNG?raw=true)
 
 </details>  
+
+<br>
+<br>
+
 ---
 
 <a id="ibet-bash"></a>
@@ -943,6 +953,9 @@ ORDER BY timestamp;
   ![bashrc](https://github.com/sazhiromru/images/blob/main/ibet/bashrc.PNG?raw=true)
 
 </details>  
+
+<br>
+<br>
 
 ---
 
