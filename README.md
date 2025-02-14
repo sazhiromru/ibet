@@ -1,4 +1,4 @@
-# ibet
+![image](https://github.com/user-attachments/assets/4e6065d4-d55e-4627-b7b9-777572ec1bfc)# ibet
 
 ---
 <a id="ibet-scraping-section"></a>
@@ -746,7 +746,7 @@ inter.broker.listener.name=BROKER
 
 ---
 <a id="ibet-clickhouse"></a>
-## ~~~ 6. ClickHouse ~~~
+## ~~~ 7. ClickHouse ~~~
 ---   
 
 Запуск и настройка Clickhouse для стабильной работы на сервере с двумя ядрами и 4гб памяти - целая эпопея.
@@ -895,3 +895,70 @@ ORDER BY timestamp;
 ---  
 С Airflow, как и c Kafka, очень важно внимательно смотреть документацию. Программа способна удивлять, для глюков и багов есть специальный огромный раздел. Например, у вас может не срабатывать команда Bash при подключении по SSH. После суток поиска ответ находиться в документации - надо поставить после команды пробел. Просто так. Потому что потому. Так бывает, ставьте пробел - заработает.   
 И ведь заработало. 
+В общем:
+
+- устанавливаем по документации
+- подсоединяем базу данных postgres со всеми настройками описанными выше, и LocalExecutor
+- создаем пользователя и отлключаем загрузку примеров
+- создаем службу
+- немного уменьшаем heartbeat в настройках чтобы снизить нагрузку на сервер - кстати помогло
+- устанавливаем ssh-connect и создаем все неоьходимые соединения
+- даем программе все папки которые она использует для логов и временных файлов
+- создаем все необхоимые Dag файлы и настраиваем таймеры
+И всё, мы готовы
+
+<details>
+  <summary><strong>🖼️ Airflow </strong></summary>
+  
+  ![installation](https://github.com/sazhiromru/images/blob/main/ibet/airflow_installation.PNG?raw=true)
+  ![postgres](https://github.com/sazhiromru/images/blob/main/ibet/postgre_airflowsetup.PNG?raw=true)
+  ![user](https://github.com/sazhiromru/images/blob/main/ibet/airflow_disable%20examples.PNG?raw=true)
+  ![service](https://github.com/sazhiromru/images/blob/main/ibet/airflow_temp_solution.PNG?raw=true)
+  ![conf](https://github.com/sazhiromru/images/blob/main/ibet/airflow_heartbeat.PNG?raw=true)
+  ![log problem](https://github.com/sazhiromru/images/blob/main/ibet/airflow-private%20temp.PNG?raw=true)
+  ![dags](https://github.com/sazhiromru/images/blob/main/ibet/airflow-dags.PNG?raw=true)
+
+</details>  
+---
+
+<a id="ibet-bash"></a>
+## ~~~ 9. GCP и BASH ~~~
+---  
+По работе с bash, нескольколько примеров:
+- настройка ssh ключей и google cli
+- отключение наследования в windows
+- chown для записи логов программ
+- настройка Firewal для корректного логина по ssh и работы с Grafana и Airflow-webserver
+- редактирование visudo чтобы airflow мог запускать python без sudo
+- установка переменных в .bashrc чтобы kafka и airflow работали
+<details>
+  <summary><strong>🖼️ Bash </strong></summary>
+  
+  ![ssh](https://github.com/sazhiromru/images/blob/main/ibet/bash_key_add.PNG?raw=true)
+  ![google cli](https://github.com/sazhiromru/images/blob/main/ibet/google1.PNG?raw=true)
+  ![редактирование ключа](https://github.com/sazhiromru/images/blob/main/heritage_disable.PNG?raw=true)
+  ![logs](https://github.com/sazhiromru/images/blob/main/ibet/logs_dir.PNG?raw=true)
+  ![service](https://github.com/sazhiromru/images/blob/main/ibet/service.PNG?raw=true)
+  ![firewal](https://github.com/sazhiromru/images/blob/main/ibet/firewall.PNG?raw=true)
+  ![visudo](https://github.com/sazhiromru/images/blob/main/ibet/airflow_visudo.PNG?raw=true)
+  ![bashrc](https://github.com/sazhiromru/images/blob/main/ibet/bashrc.PNG?raw=true)
+
+</details>  
+
+---
+
+<a id="ibet-grafana"></a>
+## ~~~ 10. Grafana ~~~
+---  
+
+По Grafana показать особо нечего. Это очень своеобразная система, сильно отличается и от Metabase и тем более от Power BI.
+Настраиваем все визуалы, делаем динамическое изменение цветов для нескольких параметров с помощью override, публикуем через share
+
+<details>
+  <summary><strong>🖼️ Grafana </strong></summary>
+  
+  ![grafana](https://github.com/sazhiromru/images/blob/main/ibet/grafana%20overrides.PNG?raw=true)
+
+
+</details>  
+Пример выше. В созданной таблице вместо числового столбца создаем буквенные через CASE, добавляем через override изменение цвета и mapping.
