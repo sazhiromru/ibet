@@ -745,7 +745,7 @@ inter.broker.listener.name=BROKER
 
 ---
 <a id="ibet-clickhouse"></a>
-## ~~~ 7. ClickHouse ~~~
+## ~~~ 6. ClickHouse ~~~
 ---   
 
 Запуск и настройка Clickhouse для стабильной работы на сервере с двумя ядрами и 4гб памяти - целая эпопея.
@@ -870,7 +870,7 @@ ORDER BY timestamp;
 
 ---
 <a id="ibet-postgres"></a>
-## ~~~ 6. Postgres ~~~
+## ~~~ 7. Postgres ~~~
 ---   
 Нужно установить postgres, создать таблицу для airflow, добавить пользователя airflow, и дать ему права на внесение записей. Затем в конфиге airflow поменять базу данных на postgres.
 ДАЖЕ ПРИ МИНИМАЛЬНОЙ НАГРУЗКЕ НЕОБХОДИМО СМЕНИТЬ БАЗУ ДАННЫХ AIRFLOW!  
