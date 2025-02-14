@@ -209,7 +209,7 @@ if __name__ == '__main__':
 
 ### Merge  
 
-По live ставкам данные поступает через REDIS в течение 10 секунд, в зависимости от страницы либо глубины поиска на сайте.
+По live ставкам данные поступают через REDIS от трех инстансев на координатор.
 
 Цель быстро сопоставить события и найти коэффиценты, которые максимально отличаются.
 
@@ -217,7 +217,7 @@ if __name__ == '__main__':
 
 Решение - в транслитерации и сопоставлению названий команд/игроков отдельно по словам и по буквам специальными отдельными функциями.
 
-Так же координатор принимает данные через Redis и загружает в CLickhouse
+Далее загружаем данные в CLickhouse через Kafka
 
 <details>
   <summary><strong>📜 Merge </strong></summary>
@@ -803,3 +803,50 @@ inter.broker.listener.name=BROKER
         <number_of_free_entries_in_pool_to_lower_max_size_of_merge>1</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
     </merge_tree>
 ```
+Далее, для сохранения данных через Kafka требуется три таблицы в clickhouse:
+- таблица для приема данных через KafkaEngine
+
+```sql
+CREATE TABLE kafka
+(
+    Event String,
+    Category String,
+    Subcategory String,
+    Stavka String,
+    F_T String,
+    Coef1 Float64,
+    Coef2 Float64,
+    Platform String,
+    Ratio Float64,
+    Timestamp Float64,
+    Timestamp_2 Float64
+) ENGINE = Kafka
+(
+    '10.140.0.7:9092',
+    'ibet',
+    'group1',
+    'JSONEachRow'
+);
+```
+
+- Материальный вид который пересохраняет данные из KafkaEngine в постоянную таблицу
+```sql
+
+CREATE MATERIALIZED VIEW saver TO stavki AS
+SELECT
+    Event AS event,
+    Category AS category,
+    Subcategory AS subcategory,
+    Stavka AS stavka,
+    F_T AS f_t,
+    Coef1 AS coef1,
+    Coef2 AS coef2,
+    Platform AS platform,
+    Ratio AS ratio,
+    toDateTime(CAST(Timestamp AS UInt32)) AS timestamp,
+    toDateTime(CAST(Timestamp_2 AS UInt32)) AS timestamp_2,
+    toInt32(toDateTime(CAST(Timestamp AS UInt32)) - toDateTime(CAST(Timestamp_2 AS UInt32))) AS time_delta
+FROM kafka;
+```
+- Ну и финальная таблица
+
