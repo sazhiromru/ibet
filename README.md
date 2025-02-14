@@ -1,6 +1,6 @@
 
 ---
-<a id="ibet-scraping-section"></a>
+<a id="ibet-scrape"></a>
 ## ~~~ 1. Сбор данных ~~~
 --- 
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 <br></br>
 
 ---
-<a id="ibet-wrangling-section"></a>
+<a id="ibet-merge"></a>
 ## ~~~ 2. Обработка данных ~~~
 --- 
 
