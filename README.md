@@ -969,13 +969,8 @@ ORDER BY timestamp;
 <details>
   <summary><strong>🖼️ Grafana </strong></summary>
   
-  ![grafana](https://github.com/sazhirom/images/blob/main/ibet/grafana%20overrides.PNG?raw=true)
+  ![grafana](https://github.com/sazhiromru/images/blob/main/ibet/grafana%20overrides.PNG?raw=true)
 
 
 </details>  
-Example Above  
-In the created table:  
-
-Instead of a numerical column, create a text-based one using CASE  
-Add color changes using override  
-Apply mapping for better visualization  
+Пример выше. В созданной таблице вместо числового столбца создаем буквенные через CASE, добавляем через override изменение цвета и mapping.
